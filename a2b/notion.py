@@ -41,10 +41,13 @@ def generate_page_data(s2_id, title, author, journal, year, citations, arxiv_id=
         "Title": {"title": [{"text": {"content": title}}]},
         "Author": {"rich_text": [{"text": {"content": author+"."}}]},
         "Journal": {"rich_text": [{"text": {"content": journal}}]},
-        "Year": {"number": year},
-        "Citations": {"number": citations},
-        "S2": {"url": f"https://www.semanticscholar.org/paper/{s2_id}"}
     }
+    if isinstance(year, int):
+        metadata["Year"] = {"number": year}
+    if isinstance(citations, int):
+        metadata["Citations"] = {"number": citations}
+    if s2_id is not None:
+        metadata["S2"] = {"url": f"https://www.semanticscholar.org/paper/{s2_id}"}
     if arxiv_id is not None:
         metadata['Arxiv'] = {"url": f"https://arxiv.org/abs/{arxiv_id}"}
     if doi is not None:
@@ -99,9 +102,17 @@ def replace_links_in_db(database_id, notion_api_key, start_cursor=None):
 
 
         if doi:
-            paper_data = connect_to_s2(doi=doi)
+            try:
+                paper_data = connect_to_s2(doi=doi)
+            except ConnectionError as exc:
+                print(red(str(exc)))
+                paper_data = None
         elif arxiv_id:
-            paper_data = connect_to_s2(arxiv_id=arxiv_id)
+            try:
+                paper_data = connect_to_s2(arxiv_id=arxiv_id)
+            except ConnectionError as exc:
+                print(red(str(exc)))
+                paper_data = None
         else:
             paper_data = None
 

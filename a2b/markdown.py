@@ -1,6 +1,6 @@
 import os
 from .s2 import connect_to_s2, extract_metadata
-from .message import prompt, get_update_message
+from .message import prompt, get_update_message, red
 from .link_utils import get_arxiv_id, get_doi
 
 
@@ -31,21 +31,31 @@ def generate_markdown(s2_id, title, authors, journal, year, citations, arxiv_id=
         markdown += f"[(Arxiv)]({'https://arxiv.org/abs/'+str(arxiv_id)}) "
     if doi is not None:
         markdown += f"[(Link)]({'https://doi.org/'+str(doi)}) "
-    markdown += f"[(S2)]({'https://www.semanticscholar.org/paper/'+str(s2_id)}) "
-    markdown += f"(Citations __{str(citations)}__)"
+    if s2_id is not None:
+        markdown += f"[(S2)]({'https://www.semanticscholar.org/paper/'+str(s2_id)}) "
+    if citations is not None:
+        markdown += f"(Citations __{str(citations)}__)"
     return markdown
 
 
 def query_single_link(link, arxiv=False):
     if arxiv:
         arxiv_id = get_arxiv_id(link)
-        paper_data = connect_to_s2(arxiv_id=arxiv_id)
+        try:
+            paper_data = connect_to_s2(arxiv_id=arxiv_id)
+        except ConnectionError as exc:
+            print(red(str(exc)))
+            return
         s2_id, title, authors, journal, year, citations = extract_metadata(paper_data)
         markdown = generate_markdown(s2_id, title, authors, journal, year, citations, arxiv_id=arxiv_id)
         print(markdown)
     else:
         doi = get_doi(link)
-        paper_data = connect_to_s2(doi=doi)
+        try:
+            paper_data = connect_to_s2(doi=doi)
+        except ConnectionError as exc:
+            print(red(str(exc)))
+            return
         s2_id, title, authors, journal, year, citations = extract_metadata(paper_data)
         markdown = generate_markdown(s2_id, title, authors, journal, year, citations, doi=doi)
         print(markdown)
@@ -67,10 +77,18 @@ def replace_links(file_path):
     for i, link in enumerate(arxiv_links+doi_links):
         if i < len(arxiv_links):
             arxiv_id, doi = get_arxiv_id(link), None
-            paper_data = connect_to_s2(arxiv_id=arxiv_id)
+            try:
+                paper_data = connect_to_s2(arxiv_id=arxiv_id)
+            except ConnectionError as exc:
+                print(red(str(exc)))
+                continue
         else:
             arxiv_id, doi = None, get_doi(link)
-            paper_data = connect_to_s2(doi=doi)
+            try:
+                paper_data = connect_to_s2(doi=doi)
+            except ConnectionError as exc:
+                print(red(str(exc)))
+                continue
 
         s2_id, title, authors, journal, year, citations = extract_metadata(paper_data)
         markdown = generate_markdown(s2_id, title, authors, journal, year, citations, arxiv_id, doi)
