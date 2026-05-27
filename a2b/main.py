@@ -1,6 +1,6 @@
 import os
 import argparse
-import pkg_resources
+from importlib.metadata import version
 from .message import prompt
 from .markdown import query_single_link, replace_links, replace_links_in_dir
 from .notion import replace_links_in_db, get_database_id
@@ -16,7 +16,7 @@ def main():
     help_notion = "the Notion database id"
     help_key = "the Notion API key"
 
-    version_info = pkg_resources.require("a2b")[0].version
+    version_info = version("a2b")
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("path", help=help_path)
     parser.add_argument("-nr", "--no-recursive", dest="recursive", action="store_false", help=help_nr)
